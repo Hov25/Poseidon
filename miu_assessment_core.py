@@ -1,337 +1,705 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neptune 360 · Import File Comparison</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2/dist/tabler-icons.min.css">
-<style>
-:root {
-  --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --border-radius-lg: 10px;
-  --border-radius-md: 6px;
-}
-body { background: #0f1117; margin: 0; }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-.wrap { padding: 1.5rem; font-family: var(--font-sans); background: #0f1117; border-radius: var(--border-radius-lg); min-height: 200px; color: #e2e4ea; }
-.header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
-.header-icon { width: 36px; height: 36px; background: #1e2a3a; border-radius: var(--border-radius-md); display: flex; align-items: center; justify-content: center; }
-.header-icon i { font-size: 18px; color: #7eb8ff; }
-.title { font-size: 17px; font-weight: 500; color: #f0f2f8; }
-.subtitle { font-size: 13px; color: #9ba3b5; margin-top: 2px; }
-.drop-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
-.drop-zone { border: 1.5px dashed #3a4160; border-radius: var(--border-radius-lg); padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; position: relative; background: #161b27; }
-.drop-zone:hover, .drop-zone.drag-over { background: #1a2236; border-color: #7eb8ff; }
-.drop-zone.loaded { border-style: solid; border-color: #2a6b4a; background: #0f1f18; }
-.drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-.drop-zone i { font-size: 24px; color: #7b85a0; display: block; margin-bottom: 8px; }
-.drop-zone.loaded i { color: #4ade9a; }
-.drop-label { font-size: 13px; color: #9ba3b5; }
-.drop-zone.loaded .drop-label { color: #4ade9a; font-weight: 500; }
-.drop-tag { font-size: 11px; color: #6b7590; margin-top: 4px; }
-.compare-btn { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; border-radius: var(--border-radius-md); border: 0.5px solid #3a4160; background: #1a1f2e; color: #d8dce8; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 1.5rem; transition: background 0.15s; }
-.compare-btn:hover { background: #22293d; }
-.compare-btn:disabled { opacity: 0.35; cursor: default; }
-.results { display: none; }
-.results.show { display: block; }
-.summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
-.scard { background: #161b27; border: 0.5px solid #2d3348; border-radius: var(--border-radius-md); padding: 0.75rem 1rem; }
-.scard-label { font-size: 11px; color: #9ba3b5; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-.scard-val { font-size: 22px; font-weight: 500; color: #f0f2f8; }
-.scard-val.ok { color: #4ade9a; }
-.scard-val.warn { color: #fcd34d; }
-.scard-val.danger { color: #fc8181; }
-.legend { display: flex; gap: 16px; margin-bottom: 1rem; flex-wrap: wrap; }
-.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9ba3b5; }
-.legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
-.sw-warn   { background: #2d2000; border: 1px solid #b45309; }
-.sw-danger { background: #2d0f0f; border: 1px solid #991b1b; }
-.sw-info   { background: #0f1f36; border: 1px solid #1e4080; }
-.sw-ok     { background: #0a1f14; border: 1px solid #166534; }
-.filter-row { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
-.filter-row label { font-size: 13px; color: #9ba3b5; }
-.pill { font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 0.5px solid #3a4160; background: #161b27; color: #9ba3b5; cursor: pointer; transition: background 0.15s; }
-.pill:hover { background: #1e2535; color: #c8cfe0; }
-.pill.active { background: #1a2a42; border-color: #3d6cb5; color: #7eb8ff; }
-.search-box { margin-left: auto; }
-.search-box input { font-size: 13px; padding: 5px 10px; border-radius: var(--border-radius-md); border: 0.5px solid #3a4160; background: #161b27; color: #d8dce8; width: 180px; outline: none; }
-.search-box input:focus { border-color: #7eb8ff; }
-.search-box input::placeholder { color: #6b7590; }
-.table-wrap { border: 0.5px solid #2d3348; border-radius: var(--border-radius-lg); overflow: hidden; }
-.diff-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
-.diff-table th { background: #131822; font-weight: 500; font-size: 11px; color: #8a93a8; text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; border-bottom: 0.5px solid #2d3348; text-align: left; }
-.diff-table td { padding: 7px 10px; border-bottom: 0.5px solid #1e2535; vertical-align: top; word-break: break-word; color: #d8dce8; }
-.diff-table tr:last-child td { border-bottom: none; }
-.diff-table tr.acct-header td { background: #13182b; border-top: 1px solid #2d3348; padding: 5px 10px; }
-.diff-table tr.acct-header.ah-warn td { background: #1f1700; border-top-color: #92400e; }
-.diff-table tr.acct-header.ah-danger td { background: #1f0a0a; border-top-color: #991b1b; }
-.diff-table tr.acct-header.ah-info td { background: #0a1525; border-top-color: #1e4080; }
-.acct-header-inner { display: flex; align-items: center; gap: 8px; }
-.acct-header-key { font-weight: 500; font-size: 12px; color: #e2e6f0; }
-.acct-header-acct { font-size: 11px; color: #9ba3b5; }
-.diff-table tr.row-match td { background: #0d1117; color: #c8cfe0; }
-.diff-table tr.row-mismatch td { background: #1f1700; color: #e8dcc0; }
-.diff-table tr.row-missing-a td { background: #1f0a0a; color: #e8c0c0; }
-.diff-table tr.row-missing-b td { background: #0a1525; color: #b8cce8; }
-.badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 999px; font-weight: 500; white-space: nowrap; }
-.badge-ok     { background: #0a1f14; color: #4ade9a; border: 0.5px solid #166534; }
-.badge-warn   { background: #2d2000; color: #fcd34d; border: 0.5px solid #b45309; }
-.badge-danger { background: #2d0f0f; color: #fc8181; border: 0.5px solid #991b1b; }
-.badge-info   { background: #0f1f36; color: #7eb8ff; border: 0.5px solid #1e4080; }
-.col-key { width: 17%; } .col-acct { width: 15%; } .col-field { width: 14%; } .col-fa { width: 20%; } .col-fb { width: 20%; } .col-status { width: 14%; }
-.export-row { display: flex; gap: 8px; margin-top: 1rem; }
-.export-btn { font-size: 12px; padding: 6px 14px; border-radius: var(--border-radius-md); border: 0.5px solid #3a4160; background: #161b27; color: #9ba3b5; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
-.export-btn:hover { background: #1e2535; color: #d8dce8; }
-.empty { padding: 2rem; text-align: center; color: #6b7590; font-size: 13px; }
-</style>
-</head>
-<body>
+# -*- coding: utf-8 -*-
+"""
+MIU System Assessment Tool - core logic (cloud/Streamlit port)
+Parses Neptune 360 .imp files, .xlsx, and .csv files to identify MIU type
+and estimate MIU age.
 
-<div class="wrap">
-  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden">Neptune 360 Import File Comparison</h2>
-  <div class="header">
-    <div class="header-icon"><i class="ti ti-file-diff" aria-hidden="true"></i></div>
-    <div>
-      <div class="title">Neptune 360 Import File Comparison</div>
-      <div class="subtitle">Compare two import files — customer and account fields side by side</div>
-    </div>
-  </div>
+This module contains only the pure parsing/lookup/export logic from the
+original desktop tool (miu_assessment_tool.py) - no tkinter, no local file
+dialogs. The Streamlit app (app.py) provides the web UI on top of these
+functions.
+"""
 
-  <div class="drop-row">
-    <div class="drop-zone" id="zone-a" ondragover="onDrag(event,'a')" ondragleave="offDrag('a')" ondrop="onDrop(event,'a')">
-      <input type="file" accept=".txt,.dat,.imp,.csv" onchange="loadFile(event,'a')">
-      <i class="ti ti-file-upload" id="icon-a" aria-hidden="true"></i>
-      <div class="drop-label" id="label-a">Drop file A here or click to browse</div>
-      <div class="drop-tag" id="tag-a">Reference file</div>
-    </div>
-    <div class="drop-zone" id="zone-b" ondragover="onDrag(event,'b')" ondragleave="offDrag('b')" ondrop="onDrop(event,'b')">
-      <input type="file" accept=".txt,.dat,.imp,.csv" onchange="loadFile(event,'b')">
-      <i class="ti ti-file-upload" id="icon-b" aria-hidden="true"></i>
-      <div class="drop-label" id="label-b">Drop file B here or click to browse</div>
-      <div class="drop-tag" id="tag-b">Comparison file</div>
-    </div>
-  </div>
+import csv as _csv
+from pathlib import Path
+from datetime import datetime
 
-  <button class="compare-btn" id="compare-btn" disabled onclick="runCompare()">
-    <i class="ti ti-arrows-diff" aria-hidden="true"></i> Compare Files
-  </button>
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+OPENPYXL_OK = True
 
-  <div class="results" id="results">
-    <div class="summary-cards" id="summary-cards"></div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-swatch sw-danger"></div> Only in File A / Missing from B</div>
-      <div class="legend-item"><div class="legend-swatch sw-info"></div> Only in File B / Missing from A</div>
-      <div class="legend-item"><div class="legend-swatch sw-warn"></div> Field value differs</div>
-      <div class="legend-item"><div class="legend-swatch sw-ok"></div> All fields match</div>
-    </div>
-    <div class="filter-row">
-      <label>Show:</label>
-      <span class="pill active" onclick="setFilter('all',this)">All accounts</span>
-      <span class="pill" onclick="setFilter('problems',this)">Problems only</span>
-      <span class="pill" onclick="setFilter('mismatch',this)">Mismatches</span>
-      <span class="pill" onclick="setFilter('missing',this)">Missing records</span>
-      <span class="pill" onclick="setFilter('match',this)">Full matches</span>
-      <div class="search-box">
-        <input type="text" placeholder="Search key or account…" oninput="setSearch(this.value)" aria-label="Search records">
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table class="diff-table" role="table">
-        <thead>
-          <tr>
-            <th class="col-key">Premises Key</th>
-            <th class="col-acct">Account #</th>
-            <th class="col-field">Field</th>
-            <th class="col-fa">File A Value</th>
-            <th class="col-fb">File B Value</th>
-            <th class="col-status">Status</th>
-          </tr>
-        </thead>
-        <tbody id="diff-body"></tbody>
-      </table>
-    </div>
-    <div class="export-row">
-      <button class="export-btn" onclick="exportCSV()"><i class="ti ti-download" aria-hidden="true"></i> Export CSV</button>
-      <button class="export-btn" onclick="copyText()"><i class="ti ti-copy" aria-hidden="true"></i> Copy summary</button>
-    </div>
-  </div>
-</div>
 
-<script>
-const files = { a: null, b: null };
-let accountGroups = [];
-let activeFilter = 'all';
-let searchTerm = '';
+CURRENT_YEAR = datetime.now().year
 
-const FIELDS = [
-  { name: 'Customer name',  ex: r => (r.customerName||'').trim() },
-  { name: 'Account number', ex: r => (r.accountNumber||'').trim() },
-  { name: 'Account status', ex: r => (r.accountStatus||'').trim() },
-  { name: 'Address 1',      ex: r => (r.address1||'').trim() },
-  { name: 'Address 2',      ex: r => (r.address2||'').trim() },
-  { name: 'City',           ex: r => (r.city||'').trim() },
-  { name: 'State',          ex: r => (r.state||'').trim() },
-  { name: 'Zip',            ex: r => (r.zip||'').trim() },
-  { name: 'Email',          ex: r => (r.email||'').trim() },
-  { name: 'Phone 1',        ex: r => (r.phone1||'').trim() },
-  { name: 'Phone 2',        ex: r => (r.phone2||'').trim() },
-  { name: 'Custom 1',       ex: r => (r.custom1||'').trim() },
-  { name: 'Custom 2',       ex: r => (r.custom2||'').trim() },
-];
 
-function parseFile(text) {
-  const lines = text.split(/\r?\n/);
-  const premises = {};
-  lines.forEach(line => {
-    if (!line || line.length < 5) return;
-    const rt = line.substring(0,5).trim().toUpperCase();
-    if (rt === 'PRMDT') {
-      const key = line.substring(83,103).trim();
-      if (!key) return;
-      premises[key] = { recordType:'PRMDT', premisesKey:key,
-        address1:line.substring(5,31), address2:line.substring(31,57),
-        customerName:line.substring(57,83), accountNumber:line.substring(103,123),
-        accountStatus:line.substring(123,127),
-        custom1:line.length>127?line.substring(127,153):'',
-        custom2:line.length>153?line.substring(153,179):'',
-        city:'', state:'', zip:'', email:'', phone1:'', phone2:'' };
-    } else if (rt === 'PRMD2') {
-      const key = line.substring(5,25).trim();
-      if (!key) return;
-      premises[key] = { recordType:'PRMD2', premisesKey:key,
-        customerName:line.substring(25,51), address1:line.substring(25,51), address2:'',
-        accountNumber:line.substring(103,123), accountStatus:line.substring(123,127),
-        city:   line.length>189?line.substring(189,215):'',
-        state:  line.length>215?line.substring(215,217):'',
-        zip:    line.length>217?line.substring(217,228):'',
-        phone1: line.length>228?line.substring(228,238):'',
-        phone2: line.length>238?line.substring(238,248):'',
-        email:  line.length>618?line.substring(618,668):'',
-        custom1:line.length>438?line.substring(438,464):'',
-        custom2:line.length>464?line.substring(464,490):'' };
+# --- MIU Range Lookup Table ---------------------------------------------------
+# Source: "Updated MIU by Year and model.csv"
+# NOTE: The 2100M Gas Remote range must appear before the broader 2000M Gas
+#       range so the more-specific entry wins on overlap.
+
+MIU_RANGES = [
+    # -- Legacy Cellular -------------------------------------------------------
+    (400000000,  499999999,  "Legacy Cellular", "CMIU Verizon",                2017, 2017),
+    (500000000,  599999999,  "Legacy Cellular", "CMIU AT&T",                   2017, 2017),
+
+    # -- R450 (sorted by start ID) ---------------------------------------------
+    (110000000,  111082515,  "R450", "R450", 2012, 2012),
+    (111082516,  112131332,  "R450", "R450", 2013, 2013),
+    (112131333,  112527102,  "R450", "R450", 2014, 2014),
+    (112527103,  112815048,  "R450", "R450", 2015, 2015),
+    (112815049,  114044970,  "R450", "R450", 2016, 2016),
+    (114044971,  114197882,  "R450", "R450", 2017, 2017),
+    (114197883,  114387746,  "R450", "R450", 2018, 2018),
+    (114387747,  114500158,  "R450", "R450", 2019, 2019),
+    (114500159,  114534096,  "R450", "R450", 2020, 2020),
+    (114534097,  114593748,  "R450", "R450", 2021, 2021),
+    (114593749,  114590805,  "R450", "R450", 2022, 2022),
+    (114590806,  114633311,  "R450", "R450", 2023, 2023),
+    (114633312,  119999999,  "R450", "R450", 2024, 2024),
+
+    # -- R900 (original / 1998) ------------------------------------------------
+    (1000000000, 1199999999, "R900", "R900",                1998, 1998),
+
+    # -- R900v2 ----------------------------------------------------------------
+    (1400010000, 1439999999, "R900", "R900v2",               2003, 2003),
+
+    # -- R900v3 ----------------------------------------------------------------
+    (1440000000, 1459999999, "R900", "R900v3",               2004, 2004),
+    (1460000000, 1469999999, "R900", "R900v3",               2004, 2004),
+    (1470000000, 1479999999, "R900", "R900v3",               2004, 2004),
+    (1490000000, 1499999999, "R900", "R900v3",               2007, 2007),
+    (1480000000, 1489999999, "R900", "R900v3",               2008, 2008),
+
+    # -- R900iv3 ---------------------------------------------------------------
+    (1810000000, 1819999999, "R900", "R900iv3",              2005, 2005),
+    (1820000000, 1829999999, "R900", "R900iv3",              2007, 2007),
+
+    # -- R900iv3 Datalogger ----------------------------------------------------
+    (1830000000, 1839999999, "R900", "R900iv3 Datalogger",   2008, 2008),
+    (1840000000, 1849999999, "R900", "R900iv3 Datalogger",   2008, 2008),
+    (1850000000, 1859999999, "R900", "R900iv3 Datalogger",   2013, 2013),
+
+    # -- R900 Gas (2100M checked first - overlaps with the 2000M range below) --
+    (2100000000, 2199999999, "R900", "R900 Gas Remote (High Power)", 2007, 2007),
+    (2000000000, 2099999999, "R900", "R900 Gas (High Power)",        2008, 2008),
+
+    # -- R900 V4 (year-specific ID bands) -------------------------------------
+    (1540000000, 1544092999, "R900", "R900 V4", 2015, 2015),
+    (1544093000, 1548186199, "R900", "R900 V4", 2016, 2016),
+    (1548186200, 1552279199, "R900", "R900 V4", 2017, 2017),
+    (1552279200, 1556372199, "R900", "R900 V4", 2018, 2018),
+    (1556372200, 1560465199, "R900", "R900 V4", 2019, 2019),
+    (1560465200, 1564558399, "R900", "R900 V4", 2020, 2020),
+    (1564558400, 1568651399, "R900", "R900 V4", 2021, 2021),
+    (1568651400, 1572744399, "R900", "R900 V4", 2022, 2022),
+    (1572744400, 1576837399, "R900", "R900 V4", 2023, 2023),
+    (1576837400, 1582509197, "R900", "R900 V4", 2024, 2024),
+    (1582509198, 1584833319, "R900", "R900 V4", 2025, 2025),
+    (1584833320, 1599999999, "R900", "R900 V4", 2026, 2026),
+
+    # -- R900v5 / R900iv5 ------------------------------------------------------
+    (700000000,  799999999,  "R900", "R900v5 / R900iv5",       2018, 2018),
+
+    # -- R900 Cellular Endpoint ------------------------------------------------
+    (220000000,  239999999,  "R900", "R900 Cellular Endpoint",          2021, 2021),
+
+    # -- R900 Multi Carrier Cellular Endpoint ----------------------------------
+    (320000000,  329999999,  "R900", "R900 Multi Carrier Cellular Endpoint", 2025, 2025),
+]
+
+
+def lookup_miu(collection_id: str) -> tuple:
+    """
+    Classify an MIU by matching its collection ID against known ID ranges.
+    Returns (system, miu_type, start_year, end_year, serial_status).
+    serial_status is one of: "ok", "missing", "invalid".
+    """
+    stripped = (collection_id or "").strip()
+    if not stripped:
+        return "Missing", "Missing MIU number", None, None, "missing"
+    try:
+        cid = int(stripped)
+    except ValueError:
+        return "Invalid", "Invalid Serial Number", None, None, "invalid"
+
+    for lo, hi, system, miu_type, start_yr, end_yr in MIU_RANGES:
+        if lo <= cid <= hi:
+            return system, miu_type, start_yr, end_yr, "ok"
+
+    return "Invalid", "Invalid Serial Number", None, None, "invalid"
+
+
+# --- Age Helpers --------------------------------------------------------------
+
+def age_label(start_year, end_year) -> str:
+    if start_year is None:
+        return "Unknown"
+    max_age = CURRENT_YEAR - start_year
+    min_age = CURRENT_YEAR - (end_year if end_year else CURRENT_YEAR)
+    if min_age == max_age:
+        return f"{max_age} yr{'s' if max_age != 1 else ''}"
+    return f"{min_age}-{max_age} yrs"
+
+
+def age_category(start_year) -> str:
+    if start_year is None:
+        return "Unknown"
+    age = CURRENT_YEAR - start_year
+    if age <= 5:
+        return "New (<=5 yrs)"
+    if age <= 10:
+        return "Moderate (6-10 yrs)"
+    if age <= 15:
+        return "Aging (11-15 yrs)"
+    return "End of Life (>15 yrs)"
+
+
+def age_fill_color(category: str) -> str:
+    return {
+        "New (<=5 yrs)":         "E2EFDA",
+        "Moderate (6-10 yrs)":   "FFF2CC",
+        "Aging (11-15 yrs)":     "FCE4D6",
+        "End of Life (>15 yrs)": "F4CCCC",
+    }.get(category, "FFFFFF")
+
+
+# --- .imp Parser --------------------------------------------------------------
+
+def parse_imp_file(filepath: str) -> tuple:
+    """Parse a Neptune 360 .imp file; return MIU records + metadata."""
+    records = []
+    current_prm = None
+    current_mtr = None
+    meta = {"company": "", "route": "", "read_date": "", "total_lines": 0,
+            "file_type": "imp"}
+
+    with open(filepath, "r", encoding="latin-1") as f:
+        lines = f.readlines()
+
+    meta["total_lines"] = len(lines)
+
+    for line in lines:
+        line = line.rstrip("\r\n")
+        if len(line) < 5:
+            continue
+        rec = line[:5]
+
+        if rec == "COMHD":
+            meta["company"] = line[5:9].strip()
+
+        elif rec == "RTEHD":
+            meta["route"]     = line[13:23].strip()
+            meta["read_date"] = line[23:31].strip()
+
+        elif rec == "PRMDT":
+            current_prm = {
+                "address":        line[5:31].strip(),
+                "customer_name":  line[57:83].strip(),
+                "account_number": line[103:123].strip(),
+            }
+
+        elif rec == "PRMD2":
+            current_prm = {
+                "address":        (line[158:183].strip() or line[5:25].strip()),
+                "customer_name":  line[25:51].strip(),
+                "account_number": line[103:123].strip(),
+            }
+
+        elif rec == "MTRDT":
+            current_mtr = {
+                "meter_number": line[37:57].strip(),
+                "meter_size":   line[85:93].strip() or "5/8\"",
+            }
+
+        elif rec == "RDGDT" and current_prm and current_mtr:
+            collection_id                                       = line[9:22].strip()
+            system, miu_type, start_yr, end_yr, serial_status  = lookup_miu(collection_id)
+
+            records.append({
+                "account_number": current_prm["account_number"],
+                "customer_name":  current_prm["customer_name"],
+                "address":        current_prm["address"],
+                "meter_number":   current_mtr["meter_number"],
+                "meter_size":     current_mtr["meter_size"],
+                "miu_serial":     collection_id,
+                "serial_status":  serial_status,
+                "system":         system,
+                "miu_type":       miu_type,
+                "est_year":       start_yr,
+                "end_year":       end_yr,
+                "age_label":      age_label(start_yr, end_yr),
+                "age_category":   age_category(start_yr),
+            })
+
+    records.sort(key=lambda r: r["est_year"] if r["est_year"] else 9999)
+    return records, meta
+
+
+# --- Tabular (.xlsx / .csv) Parser --------------------------------------------
+
+# Column name patterns that likely contain MIU serial numbers (most-specific first)
+_MIU_COL_KEYWORDS = [
+    ("collection", "id"), ("collection", "no"), ("collection", "#"),
+    ("miu", "id"),        ("miu", "serial"),    ("miu", "number"),
+    ("miu", "no"),        ("miu", "#"),
+    ("serial", "number"), ("serial", "no"),     ("serial", "#"),
+    ("endpoint", "id"),   ("endpoint", "no"),
+    ("serial",),          ("miu",),             ("endpoint",),
+]
+
+
+def _detect_miu_column_index(headers: list) -> int | None:
+    """Return index of the column most likely to hold MIU serial numbers."""
+    hl = [str(h).lower().strip() for h in headers]
+    for pattern in _MIU_COL_KEYWORDS:
+        for i, h in enumerate(hl):
+            if all(k in h for k in pattern):
+                return i
+    return None
+
+
+def _normalize_serial(val) -> str:
+    """Strip float suffix and whitespace that Excel sometimes adds."""
+    v = str(val).strip()
+    if v.endswith(".0"):
+        v = v[:-2]
+    return v
+
+
+def _read_tabular(filepath: str) -> tuple:
+    """Read .csv or .xlsx into (headers: list[str], rows: list[dict])."""
+    ext = Path(filepath).suffix.lower()
+
+    if ext == ".csv":
+        with open(filepath, newline="", encoding="utf-8-sig") as f:
+            reader = _csv.DictReader(f)
+            headers = list(reader.fieldnames or [])
+            rows = [dict(r) for r in reader]
+        return headers, rows
+
+    if ext in (".xlsx", ".xlsm"):
+        if not OPENPYXL_OK:
+            raise RuntimeError("openpyxl is required to read .xlsx files.\n"
+                               "Install with:  pip install openpyxl")
+        wb = load_workbook(filepath, read_only=True, data_only=True)
+        ws = wb.active
+        all_rows = list(ws.iter_rows(values_only=True))
+        wb.close()
+        if not all_rows:
+            return [], []
+        headers = [
+            str(c).strip() if c is not None else f"Col{i + 1}"
+            for i, c in enumerate(all_rows[0])
+        ]
+        rows = []
+        for row in all_rows[1:]:
+            if all(c is None for c in row):
+                continue  # skip blank rows
+            rows.append({
+                h: (_normalize_serial(v) if v is not None else "")
+                for h, v in zip(headers, row)
+            })
+        return headers, rows
+
+    raise ValueError(f"Unsupported file extension: {ext}")
+
+
+def parse_tabular_file(filepath: str, miu_col: str | None = None) -> tuple:
+    """
+    Parse an .xlsx or .csv file to identify MIU type and age.
+
+    miu_col: override which column holds MIU serial numbers.
+             If None, auto-detected.
+
+    Returns (records, meta) in the same format as parse_imp_file().
+    meta includes 'miu_column' (detected column name) and 'source_headers'.
+    """
+    headers, rows = _read_tabular(filepath)
+    if not rows:
+        return [], {
+            "company": "", "route": "", "read_date": "",
+            "total_lines": 0, "file_type": "tabular",
+            "source_file": Path(filepath).name,
+            "miu_column": None, "source_headers": headers,
+        }
+
+    # -- Resolve MIU serial column --------------------------------------------
+    if miu_col and miu_col in headers:
+        detected_col = miu_col
+        detection_method = "user"
+    else:
+        idx = _detect_miu_column_index(headers)
+        if idx is not None:
+            detected_col = headers[idx]
+            detection_method = "header"
+        else:
+            # Value-based fallback: find column with most serial-range hits
+            best_col, best_hits = None, 0
+            for col in headers:
+                hits = sum(
+                    1 for row in rows[:50]
+                    if lookup_miu(_normalize_serial(row.get(col, "")))[4] == "ok"
+                )
+                if hits > best_hits:
+                    best_hits, best_col = hits, col
+            detected_col = best_col
+            detection_method = "value" if detected_col else "none"
+
+    # -- Helper: case-insensitive column lookup -------------------------------
+    def _get(row, *candidates):
+        lrow = {k.lower(): v for k, v in row.items()}
+        for c in candidates:
+            v = lrow.get(c.lower(), "").strip()
+            if v:
+                return v
+        return ""
+
+    # -- Build records --------------------------------------------------------
+    records = []
+    for row in rows:
+        serial_raw = _normalize_serial(row.get(detected_col, "")) if detected_col else ""
+        system, miu_type, start_yr, end_yr, serial_status = lookup_miu(serial_raw)
+
+        records.append({
+            "account_number": _get(row,
+                "Account Number", "Account No", "Account #", "Acct No", "Acct",
+                "Account", "Customer Account"),
+            "customer_name":  _get(row,
+                "Customer Name", "Name", "Customer", "Cust Name"),
+            "address":        _get(row,
+                "Address", "Service Address", "Location", "Svc Address",
+                "Street Address"),
+            "meter_number":   _get(row,
+                "Meter Number", "Meter No", "Meter #", "Meter Serial",
+                "Meter ID", "Meter"),
+            "meter_size":     _get(row, "Meter Size", "Size"),
+            "miu_serial":     serial_raw,
+            "serial_status":  serial_status,
+            "system":         system,
+            "miu_type":       miu_type,
+            "est_year":       start_yr,
+            "end_year":       end_yr,
+            "age_label":      age_label(start_yr, end_yr),
+            "age_category":   age_category(start_yr),
+            # Preserve original row for passthrough in tabular export
+            "_raw_row":       row,
+            "_headers":       headers,
+        })
+
+    records.sort(key=lambda r: r["est_year"] if r["est_year"] else 9999)
+
+    meta = {
+        "company": "", "route": "", "read_date": "",
+        "total_lines": len(rows),
+        "file_type": "tabular",
+        "source_file": Path(filepath).name,
+        "miu_column": detected_col,
+        "detection_method": detection_method,
+        "source_headers": headers,
     }
-  });
-  return premises;
-}
+    return records, meta
 
-function loadFile(e, which) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    files[which] = { text: ev.target.result, name: file.name, size: file.size };
-    document.getElementById('zone-'+which).classList.add('loaded');
-    document.getElementById('icon-'+which).className = 'ti ti-circle-check';
-    document.getElementById('label-'+which).textContent = file.name;
-    document.getElementById('tag-'+which).textContent = (file.size/1024).toFixed(1)+' KB';
-    checkReady();
-  };
-  reader.readAsText(file);
-}
 
-function onDrag(e,w){e.preventDefault();document.getElementById('zone-'+w).classList.add('drag-over');}
-function offDrag(w){document.getElementById('zone-'+w).classList.remove('drag-over');}
-function onDrop(e,w){e.preventDefault();offDrag(w);const f=e.dataTransfer.files[0];if(!f)return;loadFile({target:{files:[f]}},w);}
-function checkReady(){document.getElementById('compare-btn').disabled=!(files.a&&files.b);}
+# --- Excel Export -------------------------------------------------------------
 
-function runCompare() {
-  const a = parseFile(files.a.text);
-  const b = parseFile(files.b.text);
-  const allKeys = [...new Set([...Object.keys(a),...Object.keys(b)])].sort();
-  accountGroups = [];
-  allKeys.forEach(key => {
-    const ra=a[key], rb=b[key];
-    const acct=(ra||rb).accountNumber.trim();
-    const rows=[];
-    if (!ra) {
-      rows.push({field:'(record)',valA:'—',valB:'present in B',status:'missing-a'});
-    } else if (!rb) {
-      rows.push({field:'(record)',valA:'present in A',valB:'—',status:'missing-b'});
-    } else {
-      FIELDS.forEach(f=>{
-        const va=f.ex(ra),vb=f.ex(rb);
-        if(va||vb) rows.push({field:f.name,valA:va||'(blank)',valB:vb||'(blank)',status:va===vb?'match':'mismatch'});
-      });
-    }
-    const hasMismatch=rows.some(r=>r.status==='mismatch');
-    const hasMissingA=rows.some(r=>r.status==='missing-a');
-    const hasMissingB=rows.some(r=>r.status==='missing-b');
-    const accountStatus=hasMissingA?'missing-a':hasMissingB?'missing-b':hasMismatch?'mismatch':'match';
-    accountGroups.push({key,acct,rows,accountStatus});
-  });
-  renderSummary();
-  renderTable();
-  document.getElementById('results').classList.add('show');
-}
+NAVY  = "1F4E79"
+WHITE = "FFFFFF"
 
-function renderSummary() {
-  const total=accountGroups.length;
-  const mismatches=accountGroups.filter(g=>g.accountStatus==='mismatch').length;
-  const missing=accountGroups.filter(g=>g.accountStatus==='missing-a'||g.accountStatus==='missing-b').length;
-  const matches=accountGroups.filter(g=>g.accountStatus==='match').length;
-  document.getElementById('summary-cards').innerHTML=`
-    <div class="scard"><div class="scard-label">Total Accounts</div><div class="scard-val">${total}</div></div>
-    <div class="scard"><div class="scard-label">Clean Matches</div><div class="scard-val ok">${matches}</div></div>
-    <div class="scard"><div class="scard-label">Field Mismatches</div><div class="scard-val ${mismatches?'warn':'ok'}">${mismatches}</div></div>
-    <div class="scard"><div class="scard-label">Missing Records</div><div class="scard-val ${missing?'danger':'ok'}">${missing}</div></div>`;
-}
 
-function renderTable() {
-  let groups=accountGroups;
-  if(activeFilter==='problems') groups=groups.filter(g=>g.accountStatus!=='match');
-  else if(activeFilter==='mismatch') groups=groups.filter(g=>g.accountStatus==='mismatch');
-  else if(activeFilter==='missing') groups=groups.filter(g=>g.accountStatus==='missing-a'||g.accountStatus==='missing-b');
-  else if(activeFilter==='match') groups=groups.filter(g=>g.accountStatus==='match');
-  if(searchTerm){const s=searchTerm.toLowerCase();groups=groups.filter(g=>g.key.toLowerCase().includes(s)||g.acct.toLowerCase().includes(s));}
-  const body=document.getElementById('diff-body');
-  if(!groups.length){body.innerHTML='<tr><td colspan="6" class="empty">No records match this filter.</td></tr>';return;}
-  const html=[];
-  groups.forEach(g=>{
-    const isProblem=g.accountStatus!=='match';
-    const ahClass=g.accountStatus==='missing-a'?'ah-danger':g.accountStatus==='missing-b'?'ah-info':g.accountStatus==='mismatch'?'ah-warn':'';
-    const statusBadge=g.accountStatus==='match'?'<span class="badge badge-ok">All Match</span>'
-      :g.accountStatus==='mismatch'?'<span class="badge badge-warn">Has Differences</span>'
-      :g.accountStatus==='missing-a'?'<span class="badge badge-danger">Only in B</span>'
-      :'<span class="badge badge-info">Only in A</span>';
-    const iconColor=g.accountStatus==='mismatch'?'#fcd34d':isProblem?'#fc8181':'#4ade9a';
-    const iconName=isProblem?'ti-alert-triangle':'ti-circle-check';
-    html.push(`<tr class="acct-header ${ahClass}"><td colspan="6"><div class="acct-header-inner">
-      <i class="ti ${iconName}" aria-hidden="true" style="font-size:14px;color:${iconColor}"></i>
-      <span class="acct-header-key">${esc(g.key)}</span>
-      <span class="acct-header-acct">Acct: ${esc(g.acct)}</span>
-      <span style="margin-left:auto">${statusBadge}</span>
-    </div></td></tr>`);
-    g.rows.forEach(r=>{
-      const rc=r.status==='mismatch'?'row-mismatch':r.status==='missing-a'?'row-missing-a':r.status==='missing-b'?'row-missing-b':'row-match';
-      const badge=r.status==='match'?'<span class="badge badge-ok">Match</span>'
-        :r.status==='mismatch'?'<span class="badge badge-warn">Mismatch</span>'
-        :r.status==='missing-a'?'<span class="badge badge-danger">Only in B</span>'
-        :'<span class="badge badge-info">Only in A</span>';
-      html.push(`<tr class="${rc}"><td>${esc(g.key)}</td><td>${esc(g.acct)}</td><td>${esc(r.field)}</td><td>${esc(r.valA)}</td><td>${esc(r.valB)}</td><td>${badge}</td></tr>`);
-    });
-  });
-  body.innerHTML=html.join('');
-}
+def _border():
+    s = Side(style="thin", color="AAAAAA")
+    return Border(left=s, right=s, top=s, bottom=s)
 
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function setFilter(f,el){activeFilter=f;document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderTable();}
-function setSearch(v){searchTerm=v;renderTable();}
 
-function exportCSV(){
-  const rows=[['Premises Key','Account Number','Field','File A Value','File B Value','Status','Account Status']];
-  accountGroups.forEach(g=>g.rows.forEach(r=>rows.push([g.key,g.acct,r.field,r.valA,r.valB,r.status,g.accountStatus])));
-  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='neptune360_comparison.csv';a.click();URL.revokeObjectURL(url);
-}
+def export_xlsx(records: list, meta: dict, out_path: str) -> None:
+    """Export records to a formatted Excel workbook (standard .imp layout)."""
+    from collections import Counter
+    wb  = Workbook()
+    bdr = _border()
 
-function copyText(){
-  const problems=accountGroups.filter(g=>g.accountStatus!=='match').length;
-  const matches=accountGroups.filter(g=>g.accountStatus==='match').length;
-  const text=`Neptune 360 Import File Comparison — ${files.a.name} vs ${files.b.name}\nTotal accounts: ${accountGroups.length}\nClean matches: ${matches}\nAccounts with issues: ${problems}`;
-  navigator.clipboard.writeText(text).catch(()=>{});
-}
-</script>
-</body>
-</html>
+    hdr_font  = Font(name="Calibri", bold=True, color=WHITE, size=10)
+    hdr_fill  = PatternFill("solid", start_color=NAVY)
+    data_font = Font(name="Calibri", size=10)
+    center    = Alignment(horizontal="center", vertical="center")
+    left      = Alignment(horizontal="left",   vertical="center")
+
+    # -- Sheet 1: MIU Age Report -----------------------------------------------
+    ws = wb.active
+    ws.title = "MIU Age Report"
+
+    rd = meta.get("read_date", "")
+    if len(rd) == 8:
+        rd = f"{rd[:4]}-{rd[4:6]}-{rd[6:]}"
+
+    cats = Counter(r["age_category"] for r in records)
+
+    ws.merge_cells("A1:L1")
+    ws["A1"] = "MIU System Assessment Tool  --  MIU Age Report"
+    ws["A1"].font      = Font(name="Calibri", bold=True, size=15, color=NAVY)
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 30
+
+    ws.merge_cells("A2:L2")
+    ws["A2"] = (
+        f"Company: {meta.get('company', '')}   |   "
+        f"Route: {meta.get('route', '')}   |   "
+        f"Read Date: {rd}   |   "
+        f"Total MIUs: {len(records)}"
+    )
+    ws["A2"].font      = Font(name="Calibri", italic=True, size=10, color="555555")
+    ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 18
+
+    ws.merge_cells("A3:L3")
+    ws["A3"] = (
+        f"New (<=5 yrs): {cats.get('New (<=5 yrs)', 0)}   |   "
+        f"Moderate (6-10 yrs): {cats.get('Moderate (6-10 yrs)', 0)}   |   "
+        f"Aging (11-15 yrs): {cats.get('Aging (11-15 yrs)', 0)}   |   "
+        f"End of Life (>15 yrs): {cats.get('End of Life (>15 yrs)', 0)}   |   "
+        f"Unknown: {cats.get('Unknown', 0)}"
+    )
+    ws["A3"].font      = Font(name="Calibri", bold=True, size=10, color="7B2D00")
+    ws["A3"].fill      = PatternFill("solid", start_color="FCE4D6")
+    ws["A3"].alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[3].height = 18
+    ws.row_dimensions[4].height = 6
+
+    headers = [
+        ("Account Number",  16), ("Customer Name",  26), ("Address",      24),
+        ("Meter Number",    18), ("Meter Size",      11), ("Collection ID", 18),
+        ("System",          16), ("MIU Type",        26), ("Mfr. Start Yr", 13),
+        ("Mfr. End Yr",     13), ("Est. Age",        16), ("Age Category",  22),
+    ]
+    for ci, (label, width) in enumerate(headers, 1):
+        c = ws.cell(row=5, column=ci, value=label)
+        c.font = hdr_font; c.fill = hdr_fill; c.alignment = center; c.border = bdr
+        ws.column_dimensions[get_column_letter(ci)].width = width
+    ws.row_dimensions[5].height = 20
+
+    serial_missing_fill = PatternFill("solid", start_color="FFCCCC")
+    serial_invalid_fill = PatternFill("solid", start_color="FFD7A8")
+    serial_missing_font = Font(name="Calibri", size=10, bold=True, color="922B21")
+    serial_invalid_font = Font(name="Calibri", size=10, bold=True, color="7E3200")
+
+    for ri, rec in enumerate(records, 6):
+        cat             = rec["age_category"]
+        fill            = PatternFill("solid", start_color=age_fill_color(cat))
+        end_yr_display  = rec["end_year"] if rec["end_year"] else "Present"
+        serial_status   = rec.get("serial_status", "ok")
+        serial_display  = rec["miu_serial"] if rec["miu_serial"] else "Missing MIU number"
+        row_vals = [
+            rec["account_number"], rec["customer_name"], rec["address"],
+            rec["meter_number"],   rec["meter_size"],    serial_display,
+            rec["system"],         rec["miu_type"],      rec["est_year"],
+            end_yr_display,        rec["age_label"],     cat,
+        ]
+        for ci, val in enumerate(row_vals, 1):
+            c = ws.cell(row=ri, column=ci, value=val)
+            c.border = bdr
+            c.alignment = left if ci in (2, 3) else center
+            if ci == 6 and serial_status == "missing":
+                c.fill = serial_missing_fill
+                c.font = serial_missing_font
+            elif ci == 6 and serial_status == "invalid":
+                c.fill = serial_invalid_fill
+                c.font = serial_invalid_font
+            else:
+                c.fill = fill
+                c.font = data_font
+        ws.row_dimensions[ri].height = 16
+
+    ws.freeze_panes = "A6"
+    ws.auto_filter.ref = f"A5:L{len(records) + 5}"
+
+    # -- Sheet 2: Age Summary --------------------------------------------------
+    ws2 = wb.create_sheet("Age Summary")
+    _write_summary_sheet(ws2, records, cats, hdr_font, hdr_fill, data_font, bdr, center, left)
+
+    wb.save(out_path)
+
+
+def export_tabular_xlsx(records: list, meta: dict, out_path: str) -> None:
+    """
+    Export tabular-source records preserving original columns, appending
+    MIU Type / Year / Age analysis columns at the end.
+    """
+    from collections import Counter
+    if not records:
+        export_xlsx(records, meta, out_path)
+        return
+
+    wb  = Workbook()
+    bdr = _border()
+
+    hdr_font  = Font(name="Calibri", bold=True, color=WHITE, size=10)
+    hdr_fill  = PatternFill("solid", start_color=NAVY)
+    data_font = Font(name="Calibri", size=10)
+    analysis_hdr_fill = PatternFill("solid", start_color="2E4057")
+    center    = Alignment(horizontal="center", vertical="center")
+    left      = Alignment(horizontal="left",   vertical="center")
+
+    cats = Counter(r["age_category"] for r in records)
+
+    # -- Sheet 1: MIU Age Report -----------------------------------------------
+    ws = wb.active
+    ws.title = "MIU Age Report"
+
+    src_file  = meta.get("source_file", "")
+    miu_col   = meta.get("miu_column", "")
+    det_meth  = meta.get("detection_method", "")
+    det_note  = {
+        "header": f"auto-detected from column header \"{miu_col}\"",
+        "value":  f"auto-detected by value scan \"{miu_col}\"",
+        "user":   f"user-selected \"{miu_col}\"",
+        "none":   "MIU column NOT detected - results may be incomplete",
+    }.get(det_meth, miu_col)
+
+    # Grab original column headers from first record that has them
+    orig_headers = []
+    for rec in records:
+        if "_headers" in rec:
+            orig_headers = rec["_headers"]
+            break
+
+    analysis_cols = [
+        ("MIU System",    14), ("MIU Type",       26),
+        ("Mfr. Year",     12), ("Est. Age",        14),
+        ("Age Category",  22),
+    ]
+    total_cols = len(orig_headers) + len(analysis_cols)
+    last_col   = get_column_letter(total_cols)
+
+    ws.merge_cells(f"A1:{last_col}1")
+    ws["A1"] = f"MIU System Assessment Tool  --  {src_file}"
+    ws["A1"].font      = Font(name="Calibri", bold=True, size=14, color=NAVY)
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+
+    ws.merge_cells(f"A2:{last_col}2")
+    ws["A2"] = (
+        f"Source: {src_file}   |   "
+        f"MIU Serial column: {det_note}   |   "
+        f"Total rows: {len(records)}"
+    )
+    ws["A2"].font      = Font(name="Calibri", italic=True, size=10, color="555555")
+    ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 16
+
+    ws.merge_cells(f"A3:{last_col}3")
+    ws["A3"] = (
+        f"New (<=5 yrs): {cats.get('New (<=5 yrs)', 0)}   |   "
+        f"Moderate (6-10 yrs): {cats.get('Moderate (6-10 yrs)', 0)}   |   "
+        f"Aging (11-15 yrs): {cats.get('Aging (11-15 yrs)', 0)}   |   "
+        f"End of Life (>15 yrs): {cats.get('End of Life (>15 yrs)', 0)}   |   "
+        f"Unknown / Invalid: {cats.get('Unknown', 0)}"
+    )
+    ws["A3"].font      = Font(name="Calibri", bold=True, size=10, color="7B2D00")
+    ws["A3"].fill      = PatternFill("solid", start_color="FCE4D6")
+    ws["A3"].alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[3].height = 16
+    ws.row_dimensions[4].height = 5
+
+    # Header row - original columns + analysis columns
+    for ci, col in enumerate(orig_headers, 1):
+        c = ws.cell(row=5, column=ci, value=col)
+        c.font = hdr_font; c.fill = hdr_fill; c.alignment = center; c.border = bdr
+        ws.column_dimensions[get_column_letter(ci)].width = max(12, min(30, len(str(col)) + 4))
+    for offset, (label, width) in enumerate(analysis_cols):
+        ci = len(orig_headers) + offset + 1
+        c = ws.cell(row=5, column=ci, value=label)
+        c.font = hdr_font; c.fill = analysis_hdr_fill; c.alignment = center; c.border = bdr
+        ws.column_dimensions[get_column_letter(ci)].width = width
+    ws.row_dimensions[5].height = 20
+
+    serial_missing_fill = PatternFill("solid", start_color="FFCCCC")
+    serial_invalid_fill = PatternFill("solid", start_color="FFD7A8")
+    serial_missing_font = Font(name="Calibri", size=10, bold=True, color="922B21")
+    serial_invalid_font = Font(name="Calibri", size=10, bold=True, color="7E3200")
+
+    miu_col_ci = (orig_headers.index(miu_col) + 1) if miu_col in orig_headers else None
+
+    for ri, rec in enumerate(records, 6):
+        cat           = rec["age_category"]
+        row_fill      = PatternFill("solid", start_color=age_fill_color(cat))
+        serial_status = rec.get("serial_status", "ok")
+        raw_row       = rec.get("_raw_row", {})
+
+        # Original columns
+        for ci, col in enumerate(orig_headers, 1):
+            val = raw_row.get(col, "")
+            c   = ws.cell(row=ri, column=ci, value=val)
+            c.font   = data_font
+            c.border = bdr
+            c.alignment = center
+            if ci == miu_col_ci:
+                if serial_status == "missing":
+                    c.fill = serial_missing_fill; c.font = serial_missing_font
+                elif serial_status == "invalid":
+                    c.fill = serial_invalid_fill; c.font = serial_invalid_font
+                else:
+                    c.fill = row_fill
+            else:
+                c.fill = row_fill
+
+        # Analysis columns
+        analysis_vals = [
+            rec["system"],
+            rec["miu_type"],
+            rec["est_year"] or "--",
+            rec["age_label"],
+            cat,
+        ]
+        for offset, val in enumerate(analysis_vals):
+            ci = len(orig_headers) + offset + 1
+            c  = ws.cell(row=ri, column=ci, value=val)
+            c.font = data_font; c.fill = row_fill; c.border = bdr; c.alignment = center
+        ws.row_dimensions[ri].height = 16
+
+    ws.freeze_panes = f"A6"
+    ws.auto_filter.ref = f"A5:{last_col}{len(records) + 5}"
+
+    # -- Sheet 2: Age Summary --------------------------------------------------
+    ws2 = wb.create_sheet("Age Summary")
+    _write_summary_sheet(ws2, records, cats, hdr_font, hdr_fill, data_font, bdr, center, left)
+
+    wb.save(out_path)
+
+
+def _write_summary_sheet(ws2, records, cats, hdr_font, hdr_fill, data_font, bdr, center, left):
+    from collections import Counter as _Counter
+    ws2["A1"] = "MIU System Assessment Tool  --  Age Summary"
+    ws2["A1"].font      = Font(name="Calibri", bold=True, size=13, color=NAVY)
+    ws2["A1"].alignment = Alignment(horizontal="left", vertical="center")
+    ws2.row_dimensions[1].height = 24
+    ws2.row_dimensions[2].height = 6
+
+    def _tbl_hdr(ws, row, labels, widths):
+        for ci, (lbl, w) in enumerate(zip(labels, widths), 1):
+            c = ws.cell(row=row, column=ci, value=lbl)
+            c.font = hdr_font; c.fill = hdr_fill; c.alignment = center; c.border = bdr
+            ws.column_dimensions[get_column_letter(ci)].width = w
+        ws.row_dimensions[row].height = 18
+
+    _tbl_hdr(ws2, 3, ["Age Category", "Count", "% of Total"], [24, 10, 14])
+    cat_order = ["New (<=5 yrs)", "Moderate (6-10 yrs)",
+                 "Aging (11-15 yrs)", "End of Life (>15 yrs)", "Unknown"]
+    total = len(records)
+    for ri2, cat in enumerate(cat_order, 4):
+        count = cats.get(cat, 0)
+        pct   = f"{count / total * 100:.1f}%" if total else "--"
+        fill  = PatternFill("solid", start_color=age_fill_color(cat))
+        for ci, val in enumerate([cat, count, pct], 1):
+            c = ws2.cell(row=ri2, column=ci, value=val)
+            c.font = data_font; c.fill = fill; c.border = bdr
+            c.alignment = left if ci == 1 else center
+        ws2.row_dimensions[ri2].height = 16
+
+    ws2.row_dimensions[9].height = 10
+    _tbl_hdr(ws2, 10, ["MIU Type", "Count", "% of Total"], [28, 10, 14])
+    type_counts = _Counter(r["miu_type"] for r in records)
+    alt = [PatternFill("solid", start_color="D6E4F0"),
+           PatternFill("solid", start_color="EBF3FB")]
+    for ri3, (mtype, count) in enumerate(
+            sorted(type_counts.items(), key=lambda x: -x[1]), 11):
+        pct  = f"{count / total * 100:.1f}%" if total else "--"
+        fill = alt[ri3 % 2]
+        for ci, val in enumerate([mtype, count, pct], 1):
+            c = ws2.cell(row=ri3, column=ci, value=val)
+            c.font = data_font; c.fill = fill; c.border = bdr
+            c.alignment = left if ci == 1 else center
+        ws2.row_dimensions[ri3].height = 16
+
+
+# --- Column Selector Dialog ---------------------------------------------------
+
